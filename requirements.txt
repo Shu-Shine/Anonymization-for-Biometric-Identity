@@ -2,6 +2,9 @@
 # Usage: pip install -r requirements.txt
 
 # Base ------------------------------------------------------------------------
+# CLIP requirements
+clip-openai
+open_clip_torch
 
 # face_tattoo_detector requirements
 gitpython>=3.1.30
