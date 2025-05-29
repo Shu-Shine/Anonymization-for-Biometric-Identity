@@ -1,0 +1,10 @@
+sphinx>=5.0
+sphinx-rtd-theme
+sphinxcontrib-napoleon
+sphinxcontrib-programoutput
+nbsphinx==0.8.7
+ipykernel
+ipython
+pandas
+scikit-learn
+scipy
