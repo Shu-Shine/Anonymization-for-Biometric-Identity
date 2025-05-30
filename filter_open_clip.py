@@ -21,7 +21,7 @@ def increment_path(base_dir, name='test'):
         return (base / f"{name}{n}").resolve()
 
 # --- Configuration ---
-IMAGE_DIR = "data/original/D"  # Directory containing images to filter
+IMAGE_DIR = "output/CLIP_filter/filtered_images18"  # input directory containing images to filter
 CLIP_Filter = True # Set to True to save filtered images
 Results_dir = "output/CLIP_filter"
 Name = "filtered_images"
@@ -52,14 +52,19 @@ EXCLUSION_PROMPTS = [
 ]
 EXCLUSION_THRESHOLD = 0.57 # If any exclusion prompt scores ABOVE this, reject the image
 
+# Additional exclusion prompts for more specific cases, like skin wounds on face
+Extra_EXCLUSION_PROMPTS = [
+    "a photo of skin wound on face",
+
+]
+Extra_EXCLUSION_THRESHOLD = 0.33
+
 # All labels to test against for full classification (includes positive and exclusions)
-text_labels = [POSITIVE_TARGET_PROMPT] + EXCLUSION_PROMPTS + [
+text_labels = [POSITIVE_TARGET_PROMPT] + EXCLUSION_PROMPTS + Extra_EXCLUSION_PROMPTS + [
     # Add other relevant general categories if needed for broader classification output
     "a photo of total blue Wood's lamp examination",
     "a photo of Skin slice specimens",
     "a photo of bandaged body part",
-    # "a photo of skin without wound",
-    # "a photo of skin wound on exposed genitalia, anus, perineal region, Buttocks or Female breasts area",
     "an abstract image or non-medical subject"
 ]
 # --- End of Configuration ---
@@ -103,6 +108,7 @@ else:
 print(f"\nTesting against all labels: {text_labels}")
 print(f"Primary Positive Target: '{POSITIVE_TARGET_PROMPT}' (Threshold: {POSITIVE_THRESHOLD})")
 print(f"Exclusion Prompts: {EXCLUSION_PROMPTS} (Threshold: {EXCLUSION_THRESHOLD})")
+print(f"Extra Exclusion Prompts: {Extra_EXCLUSION_PROMPTS} (Threshold: {Extra_EXCLUSION_THRESHOLD})")
 
 
 # Preprocess text labels
@@ -112,6 +118,8 @@ text_inputs = tokenizer(text_labels).to(device) # New way for open_clip
 # Get indices for quick lookup
 positive_target_idx = text_labels.index(POSITIVE_TARGET_PROMPT)
 exclusion_indices = [text_labels.index(p) for p in EXCLUSION_PROMPTS if p in text_labels]
+# Extra exclusion indices
+extra_exclusion_indices = [text_labels.index(p) for p in Extra_EXCLUSION_PROMPTS if p in text_labels]
 
 
 # Process images and filter
@@ -146,6 +154,8 @@ with torch.no_grad():
             is_positive_target = probabilities[positive_target_idx] >= POSITIVE_THRESHOLD
             is_excluded = False
             excluded_by_prompt = None
+            # exclude by extra exclusion
+            is_extra_excluded = False
 
             for ex_idx in exclusion_indices:
                 if probabilities[ex_idx] >= EXCLUSION_THRESHOLD:
@@ -153,9 +163,19 @@ with torch.no_grad():
                     excluded_by_prompt = text_labels[ex_idx]
                     break
 
+            for extra_ex_idx in extra_exclusion_indices:
+                if probabilities[extra_ex_idx] >= Extra_EXCLUSION_THRESHOLD:
+                    is_excluded = True
+                    excluded_by_prompt = text_labels[extra_ex_idx]
+                    is_extra_excluded = True
+                    break
+
             print(f"    Prob for '{POSITIVE_TARGET_PROMPT}': {probabilities[positive_target_idx]*100:.2f}% (Threshold: {POSITIVE_THRESHOLD*100:.0f}%) -> {'MET' if is_positive_target else 'NOT MET'}")
             if is_excluded:
-                 print(f"    Prob for EXCLUSION '{excluded_by_prompt}': {probabilities[text_labels.index(excluded_by_prompt)]*100:.2f}% (Threshold: {EXCLUSION_THRESHOLD*100:.0f}%) -> EXCLUDED")
+                 if not is_extra_excluded:
+                    print(f"    Prob for EXCLUSION '{excluded_by_prompt}': {probabilities[text_labels.index(excluded_by_prompt)]*100:.2f}% (Threshold: {EXCLUSION_THRESHOLD*100:.0f}%) -> EXCLUDED")
+                 else:
+                    print(f"    Prob for EXTRA EXCLUSION '{excluded_by_prompt}': {probabilities[text_labels.index(excluded_by_prompt)]*100:.2f}% (Threshold: {Extra_EXCLUSION_THRESHOLD*100:.0f}%) -> EXCLUDED")
             else:
                  print(f"    No exclusion criteria met (Threshold: {EXCLUSION_THRESHOLD*100:.0f}%)")
 
