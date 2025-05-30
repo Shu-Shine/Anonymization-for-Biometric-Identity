@@ -23,22 +23,22 @@ def increment_path(base_dir, name='test'):
 
 # --- Configuration ---
 # Set the input image directory
-IMAGE_DIR = "test"  # Directory containing images to filter
+IMAGE_DIR = "../images"  # Directory containing images to filter
 TARGET_LABEL = "a photo of wound, without exposed genitalia, anus, perineal region, Buttocks or Female breasts, without face, without tattoo or any recognizable features or private parts of the human body"
 # TARGET_LABEL = "a photo of skin wound, without genitalia, anus, perineal region, Buttocks or Female breasts, without face, without tattoo or any recognizable features or private parts of the human body"
 
 # Set to True to enable saving filtered images
 CLIP_Filter = False
-Results_dir = "output/CLIP_filter"
-Name = "test"
+Results_dir = "../output/CLIP_filter"
+Name = "filtered_images"
 OUTPUT_DIR = increment_path(Results_dir, name=Name)
 
 # Set the number of images to randomly select for testing
-SUBSET_SIZE = 30
+SUBSET_SIZE = 300
 
 # Set the threshold for classification
 PROBABILITY_THRESHOLD = 0.5
-MODEL_NAME = "ViT-B/32"
+MODEL_NAME = "ViT-B/32"  # other options: "ViT-B/16", "ViT-L/14"
 # --- End of Configuration ---
 
 # Load the CLIP model and preprocessor

@@ -5,8 +5,8 @@ import clip
 from PIL import Image
 
 # --- Configuration ---
-IMAGE_DIR = "images"  # Directory containing images to filter
-OUTPUT_DIR = "output/safe_wound_images"       # Folder to save filtered images
+IMAGE_DIR = "../images"  # Directory containing images to filter
+OUTPUT_DIR = "../output/safe_wound_images"       # Folder to save filtered images
 MODEL_NAME = "ViT-B/32"
 PRIVATE_THRESHOLD = 0.5                # Reject images with >30% confidence of private content
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

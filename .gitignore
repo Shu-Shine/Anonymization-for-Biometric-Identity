@@ -307,6 +307,10 @@ build*/
 __pycache__/
 samples/
 checkpoints/
+DSFD-Pytorch-Inference-master/
+Deepskin-main/
+yolov5-master/
+
 
 # coverage
 .coverage
