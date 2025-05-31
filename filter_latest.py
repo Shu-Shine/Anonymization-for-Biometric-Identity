@@ -27,7 +27,7 @@ IMAGE_DIR = "output/CLIP_filter/filtered_images4"  # input directory containing 
 # IMAGE_DIR = "test"
 CLIP_Filter = True  # Set to True to save filtered images
 Results_dir = "output/CLIP_filter"
-Name = "filtered_images"  # Updated name for output
+Name = "filtered_images"
 OUTPUT_DIR = increment_path(Results_dir, name=Name)
 SUBSET_SIZE = 600000000  # Set to None or a larger number to use all images
 
@@ -70,7 +70,6 @@ text_labels = [POSITIVE_TARGET_PROMPT] + all_exclusion_prompt_strings + [
 # Ensure all labels are unique (important for `text_labels.index()`)
 if len(text_labels) != len(set(text_labels)):
     print("Warning: Duplicate prompts found in text_labels. This might lead to unexpected behavior.")
-    # You might want to handle this more robustly, e.g., by raising an error or de-duplicating.
     text_labels = sorted(list(set(text_labels)))  # Simple de-duplication, order might change
     print(f"De-duplicated text_labels: {text_labels}")
 
@@ -168,9 +167,8 @@ with torch.no_grad():
                         is_excluded = True
                         excluded_by_prompt = prompt_str
                         exclusion_threshold_triggered = threshold_val
-                        break  # Stop at the first exclusion criterion met
+                        break
                 except ValueError:
-                    # This should not happen if text_labels is constructed correctly
                     print(
                         f"Warning: Exclusion prompt '{prompt_str}' not found in text_labels. Skipping this exclusion check.")
                     continue
