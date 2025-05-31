@@ -21,7 +21,8 @@ def increment_path(base_dir, name='test'):
         return (base / f"{name}{n}").resolve()
 
 # --- Configuration ---
-IMAGE_DIR = "output/CLIP_filter/filtered_images18"  # input directory containing images to filter
+# IMAGE_DIR = "output/CLIP_filter/filtered_images18"  # input directory containing images to filter
+IMAGE_DIR = "test"
 CLIP_Filter = True # Set to True to save filtered images
 Results_dir = "output/CLIP_filter"
 Name = "filtered_images"
@@ -30,8 +31,7 @@ SUBSET_SIZE = 600
 
 # --- CLIP Model Configuration ---
 # For OpenCLIP, specify model name and pretrained dataset
-# `open_clip.list_models()` and check pretrained datasets
-OPEN_CLIP_MODEL_NAME = 'ViT-B-32'  # e.g., 'ViT-B-32', 'ViT-L-14', 'ViT-H-14'
+OPEN_CLIP_MODEL_NAME = 'ViT-B-32'  # 'ViT-B-32', 'ViT-L-14', 'ViT-H-14'
 OPEN_CLIP_PRETRAINED_DATASET = 'laion2b_s34b_b79k' # 'openai', 'laion5b_s13b_b90k', 'laion2b_s34b_b79k'
 # OPEN_CLIP_PRETRAINED_DATASET = 'laion2b_s32b_b82k'
 
@@ -48,13 +48,14 @@ EXCLUSION_PROMPTS = [
     "a photo of an ID tag or personal identification document",
     "a photo of skin without wound",
     "a photo of skin wound on exposed genitalia, anus, perineal region, Buttocks or Female breasts area",
-
+    # "a photo of skin wound and tattoo",
 ]
 EXCLUSION_THRESHOLD = 0.57 # If any exclusion prompt scores ABOVE this, reject the image
 
-# Additional exclusion prompts for more specific cases, like skin wounds on face
+# Additional exclusion prompts for more specific cases
 Extra_EXCLUSION_PROMPTS = [
     "a photo of skin wound on face",
+
 
 ]
 Extra_EXCLUSION_THRESHOLD = 0.33

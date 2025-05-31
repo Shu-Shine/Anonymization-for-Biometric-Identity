@@ -25,7 +25,6 @@ def increment_path(base_dir, name='test'):
 # Set the input image directory
 IMAGE_DIR = "../images"  # Directory containing images to filter
 TARGET_LABEL = "a photo of wound, without exposed genitalia, anus, perineal region, Buttocks or Female breasts, without face, without tattoo or any recognizable features or private parts of the human body"
-# TARGET_LABEL = "a photo of skin wound, without genitalia, anus, perineal region, Buttocks or Female breasts, without face, without tattoo or any recognizable features or private parts of the human body"
 
 # Set to True to enable saving filtered images
 CLIP_Filter = False
@@ -86,21 +85,6 @@ text_labels = [
 
 ]
 
-# labels = [
-#     "a photo of wound, without exposed genitalia, anus, perineal region, Buttocks or Female breasts, without face, without tattoo or any recognizable features or private parts of the human body",
-#     "a photo of exposed genitalia, anus, perineal region, Buttocks, Female breasts or other Sensitive Private Body Parts",
-#     "a photo of a face or other Biometric Identity",
-#     "a photo of Tattoo, scars, birthmarks, moles, or other skin markings",
-#     "a photo of total blue Wood's lamp examination",
-#     "a photo of ID tag",
-#     "a photo of Skin slice specimens",
-#     "a photo of bandaged body",
-#     "a photo of skin without wound",
-#     # cases for wound on private parts
-#     "a photo of skin wound on exposed genitalia, anus, perineal region, Buttocks or Female breasts area",
-#     # "a photo of wound, with exposed genitalia, anus, perineal region, Buttocks Female breasts, or face, or tattoo or any recognizable features or private parts of the human body",
-#
-# ]
 print(f"\nTesting against labels: {text_labels}")
 
 
@@ -118,7 +102,7 @@ text_inputs = clip.tokenize(text_labels).to(device)
 results_summary = {} # To store probabilities for all images for potential review
 filtered_lesion_images = []
 
-with torch.no_grad(): # Important: disable gradient calculations
+with torch.no_grad(): # Disable gradient calculations
     # Encode text features once
     text_features = model.encode_text(text_inputs)
     text_features /= text_features.norm(dim=-1, keepdim=True) # Normalize features
@@ -170,7 +154,7 @@ print("\n--- Filtering Complete ---")
 if filtered_lesion_images:
     print(f"\nImages classified as '{TARGET_LABEL}' (with probability >= {PROBABILITY_THRESHOLD*100:.0f}%):")
     for img_path in filtered_lesion_images:
-        print(os.path.basename(img_path)) # Or print(img_path) for full path
+        print(os.path.basename(img_path))
 else:
     print(f"No images were classified as '{TARGET_LABEL}' with the current threshold of {PROBABILITY_THRESHOLD*100:.0f}%.")
     print("Consider adjusting the PROBABILITY_THRESHOLD or reviewing your text labels and images.")

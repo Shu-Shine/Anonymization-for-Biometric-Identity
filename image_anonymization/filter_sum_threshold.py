@@ -8,7 +8,7 @@ from PIL import Image
 IMAGE_DIR = "../images"  # Directory containing images to filter
 OUTPUT_DIR = "../output/safe_wound_images"       # Folder to save filtered images
 MODEL_NAME = "ViT-B/32"
-PRIVATE_THRESHOLD = 0.5                # Reject images with >30% confidence of private content
+PRIVATE_THRESHOLD = 0.5                # Reject images with private content above this threshold
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # --- Define labels ---
@@ -18,6 +18,7 @@ labels = [
 
     # Private content
     "a photo of skin wound on exposed genitalia, anus, perineal region, Buttocks, Female breasts or other Sensitive Private Body Parts",
+
 
 ]
 
