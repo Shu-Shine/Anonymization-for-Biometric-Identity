@@ -1,0 +1,55 @@
+# config/base_cv_config.yaml
+# todo: priority
+# - command
+# - YAML
+# - parser.set_defaults()
+# - class-defined defaults
+
+# --- DataModule Arguments (Static for this CV run) ---
+data:
+  data_dir_train_val: "../data/AZH_dataset/Train" # IMPORTANT: Set this path
+  # data_dir_test: null # Will be overridden if provided in run_kfold.py
+  num_classes: 6        # IMPORTANT: Set your number of classes
+  size: 224
+  batch_size: 32
+  workers: 4
+  k_fold_num_splits: 5    # This is static for this CV run
+  k_fold_random_seed: 42  # This is static for this CV run
+  # Add other static DataModule args: resize_first, crop_scale_wound, color_jitter_*, flip_prob, erase_prob, mean, std
+  resize_first: false
+  crop_scale_wound: [0.6, 1.0]
+  color_jitter_brightness: 0.2
+  color_jitter_contrast: 0.2
+  color_jitter_saturation: 0.2
+  color_jitter_hue: 0.1
+  flip_prob: 0.5
+  erase_prob: 0.0
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+# --- ClassificationModel Arguments (Static for this CV run) ---
+model:
+  model_name: "vit-b16-224-dino-v2"
+  lr: 0.00005
+  weight_decay: 0.01  # todo
+  optimizer: "adamw"
+  scheduler: "cosine"
+  warmup_steps: 50  # todo
+  training_mode: "full" # Options: "full", "lora", "linear"
+  # lora_r: 16 # Only if training_mode is lora
+  # lora_alpha: 16
+
+# --- Trainer Arguments (Some static, some will be overridden) ---
+trainer:
+  max_epochs: 60
+  accelerator: "gpu" # todo: "gpu"
+  devices: "1"
+  precision: "16-mixed" # Example: if you use mixed precision
+  #  max_steps: 5000
+  logger:
+#      save_dir: "output" # Will be overridden per fold
+      name: "run_logs" # Will be overridden per fold
+
+# --- ModelCheckpoint (Defaults set in MyLightningCLI can be overridden here too if needed) ---
+model_checkpoint:
+  monitor: "val_acc" # Already set in MyLightningCLI, but can be here

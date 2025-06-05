@@ -1,0 +1,38 @@
+#python main.py test \
+#    --config config/test_config.yaml \
+#    --ckpt_path "/home/woody/iwso/iwso183h/model/output/run_logs/version_12/checkpoints/best-cnn-epoch=8-val_multiclassaccuracy=0.4786.ckpt"
+
+# --- DataModule Arguments ---
+data:
+  data_dir_train_val: "data/AZH_dataset/Train" # Not strictly needed for test-only, but DataModule might expect it for init
+  data_dir_test: "data/AZH_dataset/Test" # todo: <--- IMPORTANT: Path to your actual test dataset
+  num_classes: 6       # todo: Must match the trained model's n_classes
+  size: 224            # Must match the image size used during training
+  batch_size: 64       # Can be larger for testing if memory allows (no backprop)
+  workers: 4           # Or your preferred number for data loading
+  # Ensure other data params like mean, std, resize_first are consistent if they affect test transforms
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  # k_fold params are not relevant for test-only mode on a dedicated test set
+  k_fold_num_splits: 0 # Or 1, to indicate not in k-fold CV mode for splitting
+  validation_split_ratio: null # Not used for testing
+
+# --- ClassificationModel Arguments ---
+# These are mainly to reconstruct the model architecture.
+# The actual weights will be loaded from the checkpoint.
+model:
+  model_name: "vit-b16-224-dino-v2" # todo: <--- IMPORTANT: Architecture of checkpoint
+  n_classes: 6                       # todo: Must match data.num_classes and the trained model
+  # Other model parameters (lr, optimizer, etc.) are IGNORED when loading from a checkpoint for testing.
+
+# --- Trainer Arguments ---
+trainer:
+  accelerator: "auto" # Or "cpu", "auto"
+  devices: "1"       # Or specific GPU ID(s) or number of GPUs/CPUs
+  precision: "16-mixed" # Should match training if possible, or "32-true" for testing
+  logger: # Configure where test logs/results will be saved
+    save_dir: "test_results"
+    name: "test_run_efficientnet_b0" # todo
+    # version: "experiment_X" # Optionally set a version
+
+# ckpt_path will be provided via the command line

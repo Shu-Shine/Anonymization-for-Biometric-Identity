@@ -1,0 +1,33 @@
+# config/final_train_config.yaml
+data:
+  data_dir_train_val: "../data/AZH_dataset/Train" # All data
+  # data_dir_test: null # Not used for 'fit', but will be used by 'test' command later
+  num_classes: 6
+  size: 224
+  batch_size: 32
+  # --- Key for final training split ---
+  k_fold_num_splits: 1 # Tells DataModule not to do K-fold
+  validation_split_ratio: 0.1 # e.g., 90% train, 10% val from data_dir_train_val
+  k_fold_random_seed: 123 # Different seed for this split if desired
+  # ... other static data params from your best CV run ...
+
+model:
+  model_name: "vit-b16-224-dino-v2" # Your BEST model from CV
+  lr: 0.00005                      # Your BEST LR from CV
+  # ... other BEST model HPs from CV ...
+
+trainer:
+  max_epochs: 20 # Potentially more epochs for final training
+  accelerator: "gpu"
+  devices: "1"
+  logger:
+    save_dir: "final_model_output"
+    name: "train_logs"
+  # precision: "16-mixed"
+
+model_checkpoint: # Monitor based on the new validation_split_ratio split
+  dirpath: "final_model_output/checkpoints" # Separate checkpoints
+  monitor: "val_acc"
+  filename: "final-best-{epoch}-{val_acc:.4f}"
+  # save_top_k: 1
+  # mode: "max"

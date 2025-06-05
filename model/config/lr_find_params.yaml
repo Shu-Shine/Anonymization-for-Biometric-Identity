@@ -1,0 +1,24 @@
+# config/lr_find_params.yaml
+data:
+  data_dir_train_val: "data/AZH_dataset/Train" # relative path to pyhton run directory
+  num_classes: 6
+  size: 224
+  batch_size: 64 # Use the batch size you intend to train with
+  workers: 4
+  k_fold_num_splits: 1
+  validation_split_ratio: 0.2
+  k_fold_random_seed: 12
+  # ... other necessary data params ...
+
+model:
+  model_name: "vit-b16-224-dino-v2"
+  # lr: 1e-7 # This lr will be overridden by the finder's sweep
+  # ... other necessary model params (optimizer, weight_decay etc. might be used by model's configure_optimizers)
+  optimizer: "adamw" # Needed for model.configure_optimizers()
+  weight_decay: 0.01 # Example
+
+trainer: # Minimal settings for the PL Trainer used internally
+  accelerator: "auto"
+  devices: "1"
+  precision: "16-mixed" # Optional, but good if you train with it
+  max_epochs: 30         # Max epochs for the LR find process itself

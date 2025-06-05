@@ -1,0 +1,30 @@
+#python main.py test \
+#    --config config/final_test_config_set1.yaml \
+#    --ckpt_path "final_model_output/checkpoints/final-best-....ckpt" # Actual path to the best final checkpoint
+
+# config/final_test_config_set1.yaml
+# Data params needed to initialize DataModule correctly,
+# but the key is data_dir_test
+data:
+  data_dir_train_val: "../data/AZH_dataset/Train" # Or any valid path, not strictly used for test data loading itself
+  data_dir_test: "../data/AZH_dataset/Test" # <--- IMPORTANT
+  num_classes: 6 # Must match trained model
+  size: 224      # Must match trained model
+  batch_size: 32 # Can be larger for testing
+  k_fold_num_splits: 0 # Or 1, just to ensure it's not k-fold mode for test set loading
+  validation_split_ratio: null # Not applicable for test
+
+# Model params just to load the structure, weights come from ckpt_path
+model:
+  model_name: "tv-efficientnet-b4" # Must match the architecture of the checkpoint
+  # lr, etc., don't matter for testing when loading from checkpoint
+
+trainer:
+  accelerator: "auto"
+  devices: "1"
+  logger:
+    save_dir: "final_model_output" # Logs for this test run
+    name: "test_logs_set1"
+  # precision: "16-mixed"
+
+# ckpt_path will be provided via command line
