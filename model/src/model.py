@@ -30,11 +30,10 @@ from transformers import AutoConfig, AutoModelForImageClassification
 from transformers.optimization import get_cosine_schedule_with_warmup
 import torchvision.models as tv_models
 
-from src.model_catalog import MODEL_DICT
+from src.model_catalog import MODEL_DICT  # keep the folder name
 from src.loss import SoftTargetCrossEntropy
 from src.mixup import Mixup
-from utils.plot import plot_confusion_matrix
-
+from utils.plot import plot_confusion_matrix, plot_ROC_PR_curves, calculate_AUROC_AUPR
 
 
 
@@ -313,8 +312,6 @@ class ClassificationModel(pl.LightningModule):
             # self.val_metrics.reset() # Reset by on_validation_epoch_start
 
     def on_test_epoch_end(self):
-        # SYNC_DIST = True if self.trainer and self.trainer.world_size > 1 else False
-
         # Determine Output Directory
         if hasattr(self.trainer.logger, 'log_dir') and self.trainer.logger.log_dir:
             output_dir = self.trainer.logger.log_dir
@@ -345,8 +342,6 @@ class ClassificationModel(pl.LightningModule):
                 recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
                 f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
                 per_class_metrics_list.append({
-                    # "class_id": self.hparams.class_names[i] if self.hparams.class_names and i < len(
-                    #     self.hparams.class_names) else i,
                     "class_name": self.class_labels[i],
                     "support": int(sup), "accuracy": accuracy, "precision": precision, "recall": recall, "f1_score": f1,
                 })
@@ -357,90 +352,44 @@ class ClassificationModel(pl.LightningModule):
 
         # --- AUROC/AUPR and Curve Plotting ---
         if not self.test_all_preds_probs or not self.test_all_targets:
-            print(
-                "--- WARNING: No predictions/targets collected for AUROC/AUPR calculation. Skipping those metrics and plots.")
-        else:
-            try:
-                y_preds_all_probs_np = torch.cat(self.test_all_preds_probs).numpy()
-                y_targets_all_np = torch.cat(self.test_all_targets).numpy()
+            print("--- WARNING: No predictions/targets collected for AUROC/AUPR calculation. Skipping.")
+            return
 
-                y_targets_binarized_np = label_binarize(y_targets_all_np, classes=list(range(self.hparams.n_classes)))
-                if self.hparams.n_classes == 2 and y_targets_binarized_np.ndim == 1:  # Handle binary case from label_binarize
-                    y_targets_binarized_np = y_targets_binarized_np.reshape(-1, 1)
+        try:
+            y_probs_np = torch.cat(self.test_all_preds_probs).numpy()
+            y_true_np = torch.cat(self.test_all_targets).numpy()
 
-                # Calculate per-class AUROC and AUPR to add to df_per_class
-                per_class_auroc_vals = []
-                per_class_aupr_vals = []
+            y_true_bin = label_binarize(y_true_np, classes=list(range(self.hparams.n_classes)))
+            if self.hparams.n_classes == 2 and y_true_bin.ndim == 1:
+                y_true_bin = y_true_bin.reshape(-1, 1)
 
-                for i in range(self.hparams.n_classes):
-                    if y_targets_binarized_np.shape[1] > i:  # Check if class column exists
-                        # AUROC
-                        fpr, tpr, _ = roc_curve(y_targets_binarized_np[:, i], y_preds_all_probs_np[:, i])
-                        roc_auc_val = auc(fpr, tpr) if not (np.isnan(fpr).any() or np.isnan(tpr).any()) else 0.0
-                        per_class_auroc_vals.append(roc_auc_val)
-                        # AUPR
-                        precision_curve, recall_curve, _ = precision_recall_curve(y_targets_binarized_np[:, i],
-                                                                                  y_preds_all_probs_np[:, i])
-                        aupr_val = average_precision_score(y_targets_binarized_np[:, i],
-                                                           y_preds_all_probs_np[:, i]) if not (
-                                np.isnan(precision_curve).any() or np.isnan(recall_curve).any()) else 0.0
-                        per_class_aupr_vals.append(aupr_val)
-                    else:
-                        per_class_auroc_vals.append(0.0)
-                        per_class_aupr_vals.append(0.0)
+            # Metrics
+            auroc_vals, aupr_vals = calculate_AUROC_AUPR(y_true_bin, y_probs_np,
+                                                                      self.hparams.n_classes)
+            if not df_per_class.empty and len(auroc_vals) == len(df_per_class):
+                df_per_class["auroc"] = auroc_vals
+                df_per_class["aupr"] = aupr_vals
 
-                if not df_per_class.empty and len(per_class_auroc_vals) == len(df_per_class):
-                    df_per_class['auroc'] = per_class_auroc_vals
-                    df_per_class['aupr'] = per_class_aupr_vals
+            # Plots
+            plot_ROC_PR_curves(y_true_bin, y_probs_np, self.class_labels,
+                              os.path.join(output_dir, "roc_curves_per_class.png"), curve_type="roc")
+            plot_ROC_PR_curves(y_true_bin, y_probs_np, self.class_labels,
+                              os.path.join(output_dir, "pr_curves_per_class.png"), curve_type="pr")
 
-                # Plotting ROC Curves
-                plt.figure(figsize=(10, 8))
-                for i in range(self.hparams.n_classes):
-                    if y_targets_binarized_np.shape[1] > i:
-                        fpr, tpr, _ = roc_curve(y_targets_binarized_np[:, i], y_preds_all_probs_np[:, i])
-                        plt.plot(fpr, tpr, label=f'{self.class_labels[i]} (AUC = {per_class_auroc_vals[i]:.3f})')
-                plt.plot([0, 1], [0, 1], 'k--')
-                plt.xlim([0.0, 1.0])
-                plt.ylim([0.0, 1.05])
-                plt.xlabel('False Positive Rate')
-                plt.ylabel('True Positive Rate')
-                plt.title('ROC Curves (One-vs-Rest)')
-                plt.legend(loc="lower right")
-                plt.grid(True)
-                plt.savefig(os.path.join(output_dir, "roc_curves_per_class.png"))
-                plt.close()
-                print(f"Saved per-class ROC curves: {os.path.join(output_dir, 'roc_curves_per_class.png')}")
+        except Exception as e:
+            print(f"--- ERROR during sklearn metrics/plotting: {e}")
+            import traceback
+            traceback.print_exc()
 
-                # Plotting PR Curves
-                plt.figure(figsize=(10, 8))
-                for i in range(self.hparams.n_classes):
-                    if y_targets_binarized_np.shape[1] > i:
-                        precision_curve, recall_curve, _ = precision_recall_curve(y_targets_binarized_np[:, i],
-                                                                                  y_preds_all_probs_np[:, i])
-                        plt.plot(recall_curve, precision_curve,
-                                 label=f'{self.class_labels[i]} (AP = {per_class_aupr_vals[i]:.3f})')
-                plt.xlabel('Recall')
-                plt.ylabel('Precision')
-                plt.title('Precision-Recall Curves (One-vs-Rest)')
-                plt.legend(loc="best")
-                plt.grid(True)
-                plt.savefig(os.path.join(output_dir, "pr_curves_per_class.png"))
-                plt.close()
-                print(f"Saved per-class PR curves: {os.path.join(output_dir, 'pr_curves_per_class.png')}")
-
-            except Exception as e_sklearn:
-                print(f"--- ERROR during sklearn metrics/plotting: {e_sklearn}")
-                import traceback
-                traceback.print_exc()
-
-        # Save the potentially updated df_per_class (with AUROC/AUPR)
+        # Save Metrics
         if not df_per_class.empty:
-            per_class_csv_path = os.path.join(output_dir, "per_class_detailed_metrics.csv")
+            per_class_csv = os.path.join(output_dir, "per_class_detailed_metrics.csv")
             try:
-                df_per_class.to_csv(per_class_csv_path, index=False, float_format='%.4f')
-                print(f"Saved/Updated per-class detailed metrics to: {per_class_csv_path}")
-            except Exception as e_csv:
-                print(f"Failed to save final per-class CSV: {e_csv}")
+                df_per_class.to_csv(per_class_csv, index=False, float_format="%.4f")
+                print(f"Saved/Updated per-class metrics to: {per_class_csv}")
+            except Exception as e:
+                print(f"Failed to save per-class CSV: {e}")
+
 
         # --- Confusion Matrix ---
         # Regular confusion matrix
