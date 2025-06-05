@@ -32,12 +32,21 @@ class MyLightningCLI(LightningCLI):
             }
         )
 
-        # Link arguments as before
         parser.link_arguments("data.size", "model.image_size")
         # parser.link_arguments(
         #     "data.num_classes", "model.n_classes", apply_on="instantiate"
         # )
         parser.link_arguments("data.num_classes", "model.n_classes")
+        parser.link_arguments("data.class_names", "model.class_names", apply_on="instantiate")
+
+    def before_instantiate_classes(self) -> None:
+        # Check if data.num_classes and model.n_classes are set
+        if "data" in self.config and "model" in self.config:
+            if hasattr(self.config.data, "num_classes") and hasattr(self.config.model, "n_classes"):
+                if self.config.data.num_classes != self.config.model.n_classes:
+                    print(f"CLI: Overriding model.n_classes ({self.config.model.n_classes}) "
+                          f"with data.num_classes ({self.config.data.num_classes}) before instantiation.")
+                    self.config.model.n_classes = self.config.data.num_classes
 
 def cli_main():  # This function is the entry point for the CLI
     # These are good settings for performance with compatible GPUs

@@ -23,7 +23,7 @@ from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics.classification.stat_scores import StatScores
 from torchmetrics.classification.f_beta import F1Score
 from torchmetrics.classification.auroc import AUROC
-from torchmetrics.classification.average_precision import AveragePrecision # AUPR
+from torchmetrics.classification.average_precision import AveragePrecision  # AUPR
 # from torchmetrics.classification.matthews_corrcoef import MatthewsCorrCoef
 # from torchmetrics.classification.cohen_kappa import CohenKappa
 from torchmetrics.classification.confusion_matrix import ConfusionMatrix
@@ -35,8 +35,6 @@ import torchvision.models as tv_models
 from src.loss import SoftTargetCrossEntropy
 from src.mixup import Mixup
 from utils.plot import plot_confusion_matrix
-
-
 
 MODEL_DICT = {
     # ViT
@@ -60,16 +58,15 @@ MODEL_DICT = {
     "beit-b16-224-in21k": "microsoft/beit-base-patch16-224-pt22k-ft22k",
     "beit-l16-224-in21k": "microsoft/beit-large-patch16-224-pt22k-ft22k",
     # DINO v2
-    "vit-s16-224-dino-v2": "facebook/dinov2-small",   # ViT-Small, Patch 16
-    "vit-b16-224-dino-v2": "facebook/dinov2-base",    # ViT-Base, Patch 16
-    "vit-l16-224-dino-v2": "facebook/dinov2-large",   # ViT-Large, Patch 16
-    "vit-h14-224-dino-v2": "facebook/dinov2-giant",   # ViT-Huge/Giant, Patch 14
+    "vit-s16-224-dino-v2": "facebook/dinov2-small",  # ViT-Small, Patch 16
+    "vit-b16-224-dino-v2": "facebook/dinov2-base",  # ViT-Base, Patch 16
+    "vit-l16-224-dino-v2": "facebook/dinov2-large",  # ViT-Large, Patch 16
+    "vit-h14-224-dino-v2": "facebook/dinov2-giant",  # ViT-Huge/Giant, Patch 14
 
     # With finetuned weights
     "dinov2-base-skindisease": "Jayanth2002/dinov2-base-finetuned-SkinDisease",
     # a fine-tuned version of google/vit-base-patch16-224-in21k, 10 classes
     "vit-b16-224-in21k-wound": "Hemg/Wound-Image-classification",
-
 
     # --- CNNs from Torchvision ---
     # tag torchvision models with 'tv-' prefix
@@ -114,11 +111,17 @@ class ClassificationModel(pl.LightningModule):
             lora_dropout: float = 0.0,
             lora_bias: str = "none",
             from_scratch: bool = False,
-            # Add class_names if you want to use them in plots, otherwise indices will be used
             class_names: Optional[List[str]] = None,
     ):
         super().__init__()
+
+        self.class_labels = class_names  # Save class_labels for plotting
+        print(f"Model initialized with class_labels: {self.class_labels}")
+
         self.save_hyperparameters()
+
+        self.hparams.class_names = class_names  # Save class_names in hparams for logging
+        print(f"Model initialized with class_names: {self.hparams.class_names}")
 
         # --- Network Initialization ---
         try:
@@ -210,7 +213,7 @@ class ClassificationModel(pl.LightningModule):
                 # else: print("LoRA for CNN: `lora_target_modules` not specified. Specify Conv2d layers for best results.")
 
             modules_to_save = [name for name, mod in self.net.named_modules() if isinstance(mod, nn.Linear) and (
-                        ("classifier" in name) or ("fc" in name) or ("head" in name))]
+                    ("classifier" in name) or ("fc" in name) or ("head" in name))]
 
             if effective_lora_target_modules:
                 lora_config = LoraConfig(
@@ -258,7 +261,8 @@ class ClassificationModel(pl.LightningModule):
         # Specific metrics for detailed test reporting in on_test_epoch_end
         self.test_per_class_stats_calculator = StatScores(**common_args_multiclass_scores, average=None)
         self.test_conf_matrix_calculator = ConfusionMatrix(**common_args_multiclass_scores, normalize=None)
-        self.test_conf_matrix_normed = ConfusionMatrix(**common_args_multiclass_scores, normalize='true')  # normalized by true class
+        self.test_conf_matrix_normed = ConfusionMatrix(**common_args_multiclass_scores,
+                                                       normalize='true')  # normalized by true class
 
         # Accumulators for raw predictions/targets for sklearn metrics & plots
         self.test_all_preds_probs: List[torch.Tensor] = []
@@ -357,7 +361,7 @@ class ClassificationModel(pl.LightningModule):
             # self.val_metrics.reset() # Reset by on_validation_epoch_start
 
     def on_test_epoch_end(self):
-        SYNC_DIST = True if self.trainer and self.trainer.world_size > 1 else False
+        # SYNC_DIST = True if self.trainer and self.trainer.world_size > 1 else False
 
         # Determine Output Directory
         if hasattr(self.trainer.logger, 'log_dir') and self.trainer.logger.log_dir:
@@ -389,8 +393,9 @@ class ClassificationModel(pl.LightningModule):
                 recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
                 f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
                 per_class_metrics_list.append({
-                    "class_id": self.hparams.class_names[i] if self.hparams.class_names and i < len(
-                        self.hparams.class_names) else i,
+                    # "class_id": self.hparams.class_names[i] if self.hparams.class_names and i < len(
+                    #     self.hparams.class_names) else i,
+                    "class_name": self.class_labels[i],
                     "support": int(sup), "accuracy": accuracy, "precision": precision, "recall": recall, "f1_score": f1,
                 })
             df_per_class = pd.DataFrame(per_class_metrics_list)
@@ -406,9 +411,6 @@ class ClassificationModel(pl.LightningModule):
             try:
                 y_preds_all_probs_np = torch.cat(self.test_all_preds_probs).numpy()
                 y_targets_all_np = torch.cat(self.test_all_targets).numpy()
-                class_names_for_plot = self.hparams.class_names if self.hparams.class_names and len(
-                    self.hparams.class_names) == self.hparams.n_classes else [f"Class {i}" for i in
-                                                                              range(self.hparams.n_classes)]
 
                 y_targets_binarized_np = label_binarize(y_targets_all_np, classes=list(range(self.hparams.n_classes)))
                 if self.hparams.n_classes == 2 and y_targets_binarized_np.ndim == 1:  # Handle binary case from label_binarize
@@ -429,7 +431,7 @@ class ClassificationModel(pl.LightningModule):
                                                                                   y_preds_all_probs_np[:, i])
                         aupr_val = average_precision_score(y_targets_binarized_np[:, i],
                                                            y_preds_all_probs_np[:, i]) if not (
-                                    np.isnan(precision_curve).any() or np.isnan(recall_curve).any()) else 0.0
+                                np.isnan(precision_curve).any() or np.isnan(recall_curve).any()) else 0.0
                         per_class_aupr_vals.append(aupr_val)
                     else:
                         per_class_auroc_vals.append(0.0)
@@ -444,7 +446,7 @@ class ClassificationModel(pl.LightningModule):
                 for i in range(self.hparams.n_classes):
                     if y_targets_binarized_np.shape[1] > i:
                         fpr, tpr, _ = roc_curve(y_targets_binarized_np[:, i], y_preds_all_probs_np[:, i])
-                        plt.plot(fpr, tpr, label=f'{class_names_for_plot[i]} (AUC = {per_class_auroc_vals[i]:.3f})')
+                        plt.plot(fpr, tpr, label=f'{self.class_labels[i]} (AUC = {per_class_auroc_vals[i]:.3f})')
                 plt.plot([0, 1], [0, 1], 'k--')
                 plt.xlim([0.0, 1.0])
                 plt.ylim([0.0, 1.05])
@@ -464,7 +466,7 @@ class ClassificationModel(pl.LightningModule):
                         precision_curve, recall_curve, _ = precision_recall_curve(y_targets_binarized_np[:, i],
                                                                                   y_preds_all_probs_np[:, i])
                         plt.plot(recall_curve, precision_curve,
-                                 label=f'{class_names_for_plot[i]} (AP = {per_class_aupr_vals[i]:.3f})')
+                                 label=f'{self.class_labels[i]} (AP = {per_class_aupr_vals[i]:.3f})')
                 plt.xlabel('Recall')
                 plt.ylabel('Precision')
                 plt.title('Precision-Recall Curves (One-vs-Rest)')
@@ -489,18 +491,11 @@ class ClassificationModel(pl.LightningModule):
                 print(f"Failed to save final per-class CSV: {e_csv}")
 
         # --- Confusion Matrix ---
-
-        # Prepare class labels
-        class_labels = self.hparams.class_names if (
-                hasattr(self.hparams, 'class_names') and self.hparams.class_names and
-                len(self.hparams.class_names) == self.hparams.n_classes) else [str(i) for i in
-                                                                               range(self.hparams.n_classes)]
-
         # Regular confusion matrix
         plot_confusion_matrix(
             self.test_conf_matrix_calculator.compute(),
             os.path.join(output_dir, "confusion_matrix_test.png"),
-            class_labels,
+            self.class_labels,
             title="Confusion Matrix",
             fmt='d'
         )
@@ -509,7 +504,7 @@ class ClassificationModel(pl.LightningModule):
         plot_confusion_matrix(
             self.test_conf_matrix_normed.compute(),
             os.path.join(output_dir, "confusion_matrix_normed_test.png"),
-            class_labels,
+            self.class_labels,
             title="Normalized Confusion Matrix",
             fmt='.2f'
         )
@@ -555,7 +550,7 @@ class ClassificationModel(pl.LightningModule):
                     self.trainer.datamodule.train_dataloader()) // getattr(self.trainer, 'accumulate_grad_batches', 1)
             elif hasattr(self.trainer,
                          'estimated_stepping_batches') and self.trainer.estimated_stepping_batches is not None and self.trainer.estimated_stepping_batches != float(
-                    'inf'):
+                'inf'):
                 num_training_steps = int(self.trainer.estimated_stepping_batches)
             else:
                 print("Warning: Defaulting num_training_steps for scheduler to 100000.")

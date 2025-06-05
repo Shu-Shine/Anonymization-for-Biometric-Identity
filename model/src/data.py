@@ -30,7 +30,6 @@ class CustomFoldDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path, target = self.samples_for_subset[idx]
-        # print(f"Loading image: {img_path} (idx: {idx})")  # Debugging line, can be removed later
         try:
             image = Image.open(img_path).convert("RGB")
         except FileNotFoundError:
@@ -44,8 +43,6 @@ class CustomFoldDataset(Dataset):
 class DataModule(pl.LightningDataModule):
     def __init__(
         self,
-        # dataset: str = "cifar10",
-        # root: str = "data/",
         data_dir_train_val: str,
         num_classes: int,
         data_dir_test: Optional[str] = None,
@@ -70,43 +67,37 @@ class DataModule(pl.LightningDataModule):
         batch_size: int = 32,
         workers: int = 4,
     ):
-        """
-        DataModule for custom (e.g., wound) image classification with K-fold cross-validation.
 
-        Args:
-            data_dir_train_val (str): Path to the directory containing all training/validation images,
-                                      structured for torchvision.datasets.ImageFolder (class subdirectories).
-            num_classes (int): Number of classes in the dataset.
-            data_dir_test (Optional[str]): Path to a separate test dataset directory (optional).
-            k_fold_current_fold (int): The current fold index (0 to k_fold_num_splits-1).
-            k_fold_num_splits (int): Total number of folds for cross-validation.
-            k_fold_random_seed (int): Random seed for StratifiedKFold for reproducible splits.
-            size (int): Target image size after cropping.
-            resize_first (bool): If True, resize images to size+32 then RandomCrop to size.
-                                 Else, use RandomResizedCrop.
-            crop_scale_wound (Tuple[float, float]): Min and max scale for RandomResizedCrop.
-            color_jitter_brightness (float): ColorJitter brightness factor.
-            color_jitter_contrast (float): ColorJitter contrast factor.
-            color_jitter_saturation (float): ColorJitter saturation factor.
-            color_jitter_hue (float): ColorJitter hue factor.
-            flip_prob (float): Probability of applying horizontal flip.
-            erase_prob (float): Probability of applying RandomErasing. Careful with small wounds.
-            mean (Sequence[float]): Normalization means.
-            std (Sequence[float]): Normalization standard deviations.
-            batch_size (int): Batch size for DataLoaders.
-            workers (int): Number of worker processes for DataLoaders.
-        """
         super().__init__()
         self.save_hyperparameters()
 
         # --- Load full dataset for splitting ---
         self.dataset_full_train_val = ImageFolder(root=self.hparams.data_dir_train_val)
+        class_names: List[str] = self.dataset_full_train_val.classes  # Stores class names in order
+        self.hparams.class_names = class_names
+
+        self.class_to_idx: dict = self.dataset_full_train_val.class_to_idx  # Maps class names to indices
+        print(f"Discovered classes: {self.hparams.class_names}")
+        print(f"Class to index mapping: {self.class_to_idx}")
+
+        # Check if test dataset is provided
         if self.hparams.data_dir_test:
             self.dataset_test_custom_root = ImageFolder(root=self.hparams.data_dir_test)
+            # Info: if test classes match training/validation classes
+            if self.dataset_test_custom_root.classes != self.hparams.class_names:
+                print("WARNING: Class names or order in test set differ from train/val set!")
+                print(f"Train/Val classes: {self.hparams.class_names}")
+                print(f"Test classes: {self.dataset_test_custom_root.classes}")
         else:
             self.dataset_test_custom_root = None
 
-        self.num_classes = self.hparams.num_classes  # For convenience, though also in hparams
+        # Check if num_classes matches the number of classes found in ImageFolder
+        if self.hparams.num_classes != len(self.hparams.class_names):
+            print(f"WARNING: hparam num_classes ({self.hparams.num_classes}) "
+                  f"does not match number of classes found by ImageFolder ({len(self.hparams.class_names)}: {self.hparams.class_names}). "
+                  f"Using {len(self.hparams.class_names)} classes from ImageFolder.")
+        self.num_classes = len(self.hparams.class_names)  # Override hparam if necessary, or ensure consistency
+
         print(f"Using custom dataset from {self.hparams.data_dir_train_val} for K-fold CV.")
         print(f"Target image size: {self.hparams.size}x{self.hparams.size}")
         print(f"Fold {self.hparams.k_fold_current_fold + 1}/{self.hparams.k_fold_num_splits}")
