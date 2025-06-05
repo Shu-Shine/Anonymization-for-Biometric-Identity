@@ -45,6 +45,7 @@ class DataModule(pl.LightningDataModule):
         self,
         data_dir_train_val: str,
         num_classes: int,
+        class_names: Optional[List[str]] = None,
         data_dir_test: Optional[str] = None,
         # K-fold parameters
         k_fold_current_fold: int = 0,
@@ -60,6 +61,9 @@ class DataModule(pl.LightningDataModule):
         color_jitter_saturation: float = 0.2,
         color_jitter_hue: float = 0.1,
         flip_prob: float = 0.5,
+        rand_aug_n: int = 0,
+        rand_aug_m: int = 9,
+        use_trivial_aug: bool = False,
         erase_prob: float = 0.0,  # Default to 0.0 for wounds, can be > 0 if desired
         # Generic Dataloader parameters
         mean: Sequence[float] = (0.485, 0.456, 0.406),  # ImageNet means
@@ -75,10 +79,22 @@ class DataModule(pl.LightningDataModule):
         self.dataset_full_train_val = ImageFolder(root=self.hparams.data_dir_train_val)
         class_names: List[str] = self.dataset_full_train_val.classes  # Stores class names in order
         self.hparams.class_names = class_names
+        self.class_names = class_names  # Save to link to model
+
+        # --- Debug prints to confirm ---
+        # print(f"DM_INIT End: self.hparams.num_classes from hparams: {self.hparams.get('num_classes', 'Not in hparams')}")
+        # print(f"DM_INIT End: self.hparams.class_names from hparams: {self.hparams.get('class_names', 'Not in hparams')}")
+        # print(f"DM_INIT End: self.class_names direct attribute: {getattr(self, 'class_names', 'Direct attribute not found')}")
+        # try:
+        #     val = getattr(self, "class_names")
+        #     print(f"DM_INIT End: getattr(self, 'class_names') test: SUCCEEDED, value: {val}")
+        # except AttributeError:
+        #     print("DM_INIT End: getattr(self, 'class_names') test: FAILED!")
+        # --- End Debug ---
 
         self.class_to_idx: dict = self.dataset_full_train_val.class_to_idx  # Maps class names to indices
         print(f"Discovered classes: {self.hparams.class_names}")
-        print(f"Class to index mapping: {self.class_to_idx}")
+        # print(f"Class to index mapping: {self.class_to_idx}")
 
         # Check if test dataset is provided
         if self.hparams.data_dir_test:
@@ -114,11 +130,14 @@ class DataModule(pl.LightningDataModule):
                 transforms.RandomResizedCrop(
                     (self.hparams.size, self.hparams.size),
                     scale=self.hparams.crop_scale_wound,
-                    ratio=(0.75, 1.33)  # Standard aspect ratio
+                    ratio=(0.75, 1.33)  # todo: Standard aspect ratio
                 )
             )
         train_augs.extend([
             transforms.RandomHorizontalFlip(p=self.hparams.flip_prob),
+            # transforms.TrivialAugmentWide()
+            # if self.hparams.use_trivial_aug
+            # else transforms.RandAugment(self.hparams.rand_aug_n, self.hparams.rand_aug_m),
             transforms.ColorJitter(
                 brightness=self.hparams.color_jitter_brightness,
                 contrast=self.hparams.color_jitter_contrast,
@@ -132,8 +151,8 @@ class DataModule(pl.LightningDataModule):
         ])
         if self.hparams.erase_prob > 0:
             train_augs.append(transforms.RandomErasing(p=self.hparams.erase_prob))
+
         self.transforms_train = transforms.Compose(train_augs)
-        print("Using wound-specific training augmentations.")
 
         self.transforms_test = transforms.Compose(
             [
