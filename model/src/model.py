@@ -41,6 +41,7 @@ class ClassificationModel(pl.LightningModule):
     def __init__(
             self,
             model_name: str = "vit-b16-224-dino-v2",
+            model_path: Optional[str] = None,
             optimizer: str = "adamw",
             lr: float = 1e-4,
             betas: Tuple[float, float] = (0.9, 0.999),
@@ -130,9 +131,20 @@ class ClassificationModel(pl.LightningModule):
                                                     image_size=self.hparams.image_size if 'vit' in self.hparams.model_name.lower() else None)
                 self.net = AutoModelForImageClassification.from_config(config)
             else:
-                self.net = AutoModelForImageClassification.from_pretrained(
-                    hf_model_id, num_labels=self.hparams.n_classes, ignore_mismatched_sizes=True,
-                    image_size=self.hparams.image_size if 'vit' in self.hparams.model_name.lower() else None)
+                # Load pretrained model from Hugging Face
+                if hasattr(self.hparams, 'model_path') and self.hparams.model_path:
+                    self.net = AutoModelForImageClassification.from_pretrained(
+                        self.hparams.model_path,
+                        num_labels=self.hparams.n_classes,
+                        ignore_mismatched_sizes=True
+                    )
+                # Load from Hugging Face Hub
+                else:
+                    self.net = AutoModelForImageClassification.from_pretrained(
+                        hf_model_id, num_labels=self.hparams.n_classes, ignore_mismatched_sizes=True,
+                        # If using ViT/DINO, specify image size
+                        image_size=self.hparams.image_size if 'vit' in self.hparams.model_name.lower()
+                                                              or 'dino' in self.hparams.model_name.lower() else None)
         else:
             raise ValueError(f"Unknown model source for identifier: {model_identifier}")
 

@@ -2,17 +2,18 @@
 
 # --- DataModule Arguments (Static for this CV run) ---
 data:
-  data_dir_train_val: "data/AZH_dataset/Train" # IMPORTANT: Set this path
+  data_dir_train_val: "data/AZH_dataset/Train" # todo: Set training data path
+  # For predownloaded models
+#  processor_path: "model/hf_models/Jayanth2002_dinov2_finetuned_skin"
   # data_dir_test: null # Will be overridden if provided in run_kfold.py
-  num_classes: 6        # IMPORTANT: Set your number of classes
+  num_classes: 6        # Set your number of classes
   size: 224
-  batch_size: 64  # 128 out of memory
+  batch_size: 64
   workers: 4
   # Select for K-fold CV or training/validation split
   k_fold_num_splits: 1    # Set to 1 for training/validation split, not K-fold
   validation_split_ratio: 0.2
   k_fold_random_seed: 1  # todo
-  # Add other static DataModule args: resize_first, crop_scale_wound, color_jitter_*, flip_prob, erase_prob, mean, std
   resize_first: false
   crop_scale_wound: [0.6, 1.0]
   color_jitter_brightness: 0.2
@@ -26,7 +27,9 @@ data:
 
 # --- ClassificationModel Arguments (Static for this CV run) ---
 model:
-  model_name: "vit-b16-224-dino-v2"
+  model_name: "vit-b16-224-in21k-wound"  # todo: Set model name
+  # For predownloaded models
+#  model_path: "model/hf_models/Jayanth2002_dinov2_finetuned_skin"
   training_mode: "full" # Options: "full", "lora", "linear"
   optimizer: "adamw"
   lr: 1.0965e-05  # todo: 0.0001, 0.00005, 0.00001
@@ -41,7 +44,7 @@ trainer:
   max_epochs: 100
   accelerator: "gpu"
   devices: "1"
-  precision: "16-mixed" # Example: if use mixed precision
+  precision: "16-mixed"
   #  max_steps: 5000
 #  val_check_interval: 500
   logger:

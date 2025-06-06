@@ -8,9 +8,10 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from sklearn.model_selection import StratifiedKFold
 from PIL import Image
+from transformers import AutoImageProcessor
 
 
-# Helper Dataset for K-fold custom data to apply correct transforms
+
 class CustomFoldDataset(Dataset):
     def __init__(self, all_samples: List[Tuple[str, int]], indices_for_this_subset: List[int], transform=None):
         """
@@ -22,8 +23,6 @@ class CustomFoldDataset(Dataset):
 
         self.samples_for_subset = [(all_samples[i][0], all_samples[i][1]) for i in indices_for_this_subset]
         self.transform = transform
-        # ImageFolder.samples usually gives absolute paths or paths relative to its root.
-        # Assuming paths are directly usable.
 
     def __len__(self):
         return len(self.samples_for_subset)
@@ -47,6 +46,7 @@ class DataModule(pl.LightningDataModule):
         num_classes: int,
         class_names: Optional[List[str]] = None,
         data_dir_test: Optional[str] = None,
+        processor_path: Optional[str] = None,
         # K-fold parameters
         k_fold_current_fold: int = 0,
         k_fold_num_splits: int = 1,  # Default to 1, indicating not typical K-fold
@@ -74,6 +74,12 @@ class DataModule(pl.LightningDataModule):
 
         super().__init__()
         self.save_hyperparameters()
+
+        # Load the processor from predownloaded HuggingFace model
+        if self.hparams.processor_path:
+            self.image_processor = AutoImageProcessor.from_pretrained(self.hparams.processor_path)
+        else:
+            print("WARNING: processor_path was not provided or is None. ")
 
         # --- Load full dataset for splitting ---
         self.dataset_full_train_val = ImageFolder(root=self.hparams.data_dir_train_val)

@@ -27,8 +27,9 @@ MODEL_DICT = {
     "vit-h14-224-dino-v2": "facebook/dinov2-giant",  # ViT-Huge/Giant, Patch 14
 
     # With finetuned weights
+    # dinov2 models with fine-tuned weights
     "dinov2-base-skindisease": "Jayanth2002/dinov2-base-finetuned-SkinDisease",
-    # a fine-tuned version of google/vit-base-patch16-224-in21k, 10 classes
+    # google/vit-base-patch16-224-in21k with fine-tuned weights, 10 classes
     "vit-b16-224-in21k-wound": "Hemg/Wound-Image-classification",
 
     # --- CNNs from Torchvision ---
