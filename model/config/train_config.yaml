@@ -2,12 +2,12 @@
 
 # --- DataModule Arguments (Static for this CV run) ---
 data:
-  data_dir_train_val: "data/original" # todo: Set training data path
+  data_dir_train_val: "data/AZH_dataset/Train" # todo: Set training data path
   # For predownloaded models
 #  processor_path: "model/hf_models/Jayanth2002_dinov2_finetuned_skin"
-  num_classes: 4                      # todo: Set correct number of classes
+  num_classes: 6                      # todo: Set correct number of classes
   size: 224
-  batch_size: 64
+  batch_size: 128                     # todo: Set training batch size
   workers: 4
   # Select K-fold CV or training/validation split
   k_fold_num_splits: 1    # Set to 1 for no K-fold
@@ -46,6 +46,20 @@ trainer:
   precision: "16-mixed"
   #  max_steps: 5000
 #  val_check_interval: 500
+  # --- Define a LIST of loggers ---
+#  logger:
+#    - class_path: pytorch_lightning.loggers.CSVLogger
+#      init_args:
+#        save_dir: "output" # Base directory for all logs
+#        name: "csv_logs"   # Subdirectory for CSV logs for this run
+#        # version: "run_01" # Optional specific version for CSV
+#
+#    - class_path: pytorch_lightning.loggers.TensorBoardLogger
+#      init_args:
+#        save_dir: "output" # Base directory for all logs
+#        name: "tensorboard_logs" # Subdirectory for TensorBoard logs for this run
+#        # version: "run_01" # Optional specific version for TensorBoard (can be same or different)
+#        # default_hp_metric: False # Set to True if you want hyperparameter tuning plots in TensorBoard
   logger:
 #    save_dir: "output"
     name: "run_logs"
@@ -53,8 +67,8 @@ trainer:
     - class_path: pytorch_lightning.callbacks.EarlyStopping
       init_args:
         monitor: "val_acc"            # todo: Set EarlyStopping monitor metric, e.g. "val_macro_f1"
-        patience: 10
-        min_delta: 0.001
+        patience: 10   # Commonly 5-20
+        min_delta: 0.001  # or 0.0001
         mode: "max"
         verbose: true
     # Add other callbacks as needed

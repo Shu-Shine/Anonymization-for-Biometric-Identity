@@ -1,19 +1,19 @@
-# config/lr_find_params.yaml
+
 data:
-  data_dir_train_val: "data/original"  # todo: Set the path to training/validation data
-  num_classes: 4
+  data_dir_train_val: "data/AZH_dataset/Train"  # todo: Set the path to training/validation data
+  num_classes: 6
   size: 224
-  batch_size: 64 # todo: Keep same with the training batch size
+  batch_size: 128                      # todo: Set training batch size
   workers: 4
   k_fold_num_splits: 1
   validation_split_ratio: 0.2
-  k_fold_random_seed: 12
+  k_fold_random_seed: 1
 
 model:
-  model_name: "vit-b16-224-dino-v2"  # todo: Set model name
+  model_name: "tv-efficientnet-b4"     # todo: Set training model name
   # lr: 1e-7 # lr will be overridden by the finder's sweep
-  optimizer: "adamw" # Needed for model.configure_optimizers()
-  weight_decay: 0.01
+  optimizer: "adamw"                   #todo: Set training optimizer
+  weight_decay: 0.0001                 # todo: Set training weight decay
 
 trainer:
   accelerator: "auto"

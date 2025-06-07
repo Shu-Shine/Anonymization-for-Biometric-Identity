@@ -147,6 +147,8 @@ class ClassificationModel(pl.LightningModule):
                                                               or 'dino' in self.hparams.model_name.lower() else None)
         else:
             raise ValueError(f"Unknown model source for identifier: {model_identifier}")
+            # Load the model from the local shared path
+
 
         if self.hparams.weights:
             # Checkpoint loading logic
@@ -195,6 +197,9 @@ class ClassificationModel(pl.LightningModule):
             print("Full fine-tuning: All parameters are trainable.")
             for param in self.net.parameters(): param.requires_grad = True
 
+
+
+
         # --- Metrics Initialization ---
         num_actual_classes = self.hparams.n_classes
         common_args_multiclass_macro = {"task": "multiclass", "num_classes": num_actual_classes, "average": "macro"}
@@ -203,23 +208,42 @@ class ClassificationModel(pl.LightningModule):
         common_args_multiclass_scores = {"task": "multiclass", "num_classes": num_actual_classes}
 
         # Metrics for standard logging ( to metrics.csv)
-        metrics_dict_aggregated = {
-            'acc': Accuracy(**common_args_multiclass_scores, top_k=1),  # Top-1 accuracy
-            'f1_macro': F1Score(**common_args_multiclass_macro),
-            'f1_weighted': F1Score(**common_args_multiclass_weighted),
-            'precision_macro': Precision(**common_args_multiclass_macro),
-            'precision_weighted': Precision(**common_args_multiclass_weighted),
-            'recall_macro': Recall(**common_args_multiclass_macro),
-            'recall_weighted': Recall(**common_args_multiclass_weighted),
-            'auroc_macro': AUROC(**common_args_multiclass_macro),
-            'auroc_weighted': AUROC(**common_args_multiclass_weighted),
-            'aupr_macro': AveragePrecision(**common_args_multiclass_macro),
-            'aupr_weighted': AveragePrecision(**common_args_multiclass_weighted),
-        }
-        self.train_metrics = MetricCollection(metrics_dict_aggregated.copy())
-        self.val_metrics = MetricCollection(metrics_dict_aggregated.copy())
-        self.test_metrics = MetricCollection(
-            metrics_dict_aggregated.copy())  # For self.log in test_step
+        def make_metrics():
+            return {
+                'acc': Accuracy(**common_args_multiclass_scores, top_k=1),
+                'f1_macro': F1Score(**common_args_multiclass_macro),
+                'f1_weighted': F1Score(**common_args_multiclass_weighted),
+                'precision_macro': Precision(**common_args_multiclass_macro),
+                'precision_weighted': Precision(**common_args_multiclass_weighted),
+                'recall_macro': Recall(**common_args_multiclass_macro),
+                'recall_weighted': Recall(**common_args_multiclass_weighted),
+                'auroc_macro': AUROC(**common_args_multiclass_macro),
+                'auroc_weighted': AUROC(**common_args_multiclass_weighted),
+                'aupr_macro': AveragePrecision(**common_args_multiclass_macro),
+                'aupr_weighted': AveragePrecision(**common_args_multiclass_weighted),
+            }
+
+        self.train_metrics = MetricCollection(make_metrics())
+        self.val_metrics = MetricCollection(make_metrics())
+        self.test_metrics = MetricCollection(make_metrics())
+
+        # metrics_dict_aggregated = {
+        #     'acc': Accuracy(**common_args_multiclass_scores, top_k=1),  # Top-1 accuracy
+        #     'f1_macro': F1Score(**common_args_multiclass_macro),
+        #     'f1_weighted': F1Score(**common_args_multiclass_weighted),
+        #     'precision_macro': Precision(**common_args_multiclass_macro),
+        #     'precision_weighted': Precision(**common_args_multiclass_weighted),
+        #     'recall_macro': Recall(**common_args_multiclass_macro),
+        #     'recall_weighted': Recall(**common_args_multiclass_weighted),
+        #     'auroc_macro': AUROC(**common_args_multiclass_macro),
+        #     'auroc_weighted': AUROC(**common_args_multiclass_weighted),
+        #     'aupr_macro': AveragePrecision(**common_args_multiclass_macro),
+        #     'aupr_weighted': AveragePrecision(**common_args_multiclass_weighted),
+        # }
+        # self.train_metrics = MetricCollection(metrics_dict_aggregated.copy())
+        # self.val_metrics = MetricCollection(metrics_dict_aggregated.copy())
+        # self.test_metrics = MetricCollection(
+        #     metrics_dict_aggregated.copy())  # For self.log in test_step
 
         # Specific metrics for detailed test reporting in on_test_epoch_end
         self.test_per_class_stats_calculator = StatScores(**common_args_multiclass_scores, average=None)
