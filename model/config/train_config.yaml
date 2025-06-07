@@ -5,15 +5,14 @@ data:
   data_dir_train_val: "data/original" # todo: Set training data path
   # For predownloaded models
 #  processor_path: "model/hf_models/Jayanth2002_dinov2_finetuned_skin"
-  # data_dir_test: null # Will be overridden if provided in run_kfold.py
-  num_classes: 4        # Set number of classes
+  num_classes: 4                      # todo: Set correct number of classes
   size: 224
   batch_size: 64
   workers: 4
   # Select K-fold CV or training/validation split
-  k_fold_num_splits: 1    # Set to 1 for training/validation split, not K-fold
+  k_fold_num_splits: 1    # Set to 1 for no K-fold
   validation_split_ratio: 0.2
-  k_fold_random_seed: 1   # todo: Set random seed for split consistency
+  k_fold_random_seed: 1               # todo: Set random seed for split consistency
   resize_first: false
   crop_scale_wound: [0.6, 1.0]
   color_jitter_brightness: 0.2
@@ -30,12 +29,12 @@ model:
   model_name: "vit-b16-224-dino-v2"  # todo: Set model name
   # For predownloaded models
 #  model_path: "model/hf_models/Jayanth2002_dinov2_finetuned_skin"
-  training_mode: "full"   # todo: Options: "full", "lora", "linear"
-  optimizer: "adamw"      # todo: Set optimizer type, e.g. "adamw", "sgd"
-  lr: 1e-06               # todo: Set lr, e.g. 1e-04, 5e-05, 1e-05
-  weight_decay: 0.01      # todo: Set weight decay, e.g. 0.01, 0.001
-  scheduler: "cosine"     # todo: Set scheduler type, e.g. "cosine", "linear", "step"
-  warmup_steps: 50        # todo: 500, 总 steps 的 5-10%?
+  training_mode: "full"              # todo: Options: "full", "lora", "linear"
+  optimizer: "adamw"                 # todo: Set optimizer type, e.g. "adamw", "sgd"
+  lr: 1e-04                          # todo: Set lr, e.g. 1e-04, 5e-05, 1e-05
+  weight_decay: 0.01                 # todo: Set weight decay, e.g. 0.01, 0.001
+  scheduler: "cosine"                # todo: Set scheduler type, e.g. "cosine", "linear", "step"
+  warmup_steps: 50                   # todo: 500, 总 steps 的 5-10%?
   # lora_r: 16 # Only if training_mode is lora
   # lora_alpha: 16
 
@@ -53,7 +52,7 @@ trainer:
   callbacks:
     - class_path: pytorch_lightning.callbacks.EarlyStopping
       init_args:
-        monitor: "val_acc"  # todo: Set EarlyStopping monitor metric, e.g. "val_macro_f1"
+        monitor: "val_acc"            # todo: Set EarlyStopping monitor metric, e.g. "val_macro_f1"
         patience: 10
         min_delta: 0.001
         mode: "max"

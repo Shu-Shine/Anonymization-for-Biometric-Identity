@@ -5,8 +5,8 @@
 # --- DataModule Arguments ---
 data:
   data_dir_train_val: "data/AZH_dataset/Train"
-  data_dir_test: "data/AZH_dataset/Test" # todo: Path to test dataset
-  num_classes: 6
+  data_dir_test: "data/AZH_dataset/Test"  # todo: Path to test dataset
+  num_classes: 6                          # todo: Set correct number of classes
   size: 224
   batch_size: 64
   workers: 4
@@ -18,18 +18,18 @@ data:
 
 # --- ClassificationModel Arguments ---
 model:
-  model_name: "dinov2-base-skindisease" # todo: Architecture of checkpoint
-  n_classes: 6                       # todo
+  model_name: "dinov2-base-skindisease"   # todo: Architecture of checkpoint
+#  n_classes: 4
   # Other model parameters (lr, optimizer, etc.) are IGNORED when loading from a checkpoint for testing.
 
 # --- Trainer Arguments ---
 trainer:
   accelerator: "auto" # Or "cpu", "auto"
-  devices: "1"       # Or specific GPU ID(s) or number of GPUs/CPUs
+  devices: "1"
   precision: "16-mixed" # Should match training if possible, or "32-true" for testing
-  logger: # Configure where test logs/results will be saved
+  logger:
     save_dir: "test_results"
-    name: "test_dinov2-base-skindisease" # todo: Set the folder name for test results
+    name: "test_model"                    # todo: Set the folder name for this test run
     # version: "experiment_X" # Optionally set a version
 
-# todo: ckpt_path will be provided via the command line
+# todo: Set ckpt_path via the command line
