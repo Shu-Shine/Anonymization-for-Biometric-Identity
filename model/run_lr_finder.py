@@ -20,7 +20,7 @@ from src.model import ClassificationModel
 # Hint: Common strategies for picking an LR from the plot:
 # 1. The point where the loss is steepest on its downward slope.
 # 2. One order of magnitude less than the LR where the loss starts to explode.
-# Based on the estimated LR, can also further slightly adjust.
+
 
 def check_path_exists(path_str):
     """Custom type for argparse to check if a path exists and is a file."""
@@ -95,7 +95,7 @@ def main():
     )
 
     # Define a flexible path for saving the LR finder plot
-    PATH =f"lr_finder_plots/{model_config['model_name']}_lr_finder_plot.png"
+    PATH =f"output/plots/lr_finder_plots/{model_config['model_name']}_lr_finder_plot.png"
 
     print("Starting Learning Rate Finder...")
     print(f"  Config file: {args.config}")
