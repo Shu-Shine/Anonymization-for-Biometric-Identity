@@ -1,9 +1,9 @@
-# run_lr_finder.py
+
 import os
 import yaml
 import matplotlib
 
-matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib, good for scripts
+matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 from jsonargparse import ArgumentParser
@@ -16,6 +16,11 @@ from pytorch_lightning.tuner.tuning import Tuner
 from src.data import DataModule
 from src.model import ClassificationModel
 
+
+# Hint: Common strategies for picking an LR from the plot:
+# 1. The point where the loss is steepest on its downward slope.
+# 2. One order of magnitude less than the LR where the loss starts to explode.
+# Based on the estimated LR, can also further slightly adjust.
 
 def check_path_exists(path_str):
     """Custom type for argparse to check if a path exists and is a file."""
@@ -35,13 +40,14 @@ def main():
         required=True,
         help="Path to the YAML configuration file for LR finding."
     )
-    # lr_finder can't be defined in the config file, so we define it here
-    parser.add_argument("--lr_finder.min_lr", type=float, default=1e-7, help="Minimum learning rate for scan.")
+    # lr_finder can only be defined here, not in the YAML config
+    # min_lr not be too small, avoid loss divergence at the start
+    parser.add_argument("--lr_finder.min_lr", type=float, default=3e-7, help="Minimum learning rate for scan.")
     parser.add_argument("--lr_finder.max_lr", type=float, default=0.1, help="Maximum learning rate for scan.")
-    parser.add_argument("--lr_finder.num_training", type=int, default=500, help="Number of training steps for LR find.")
+    parser.add_argument("--lr_finder.num_training", type=int, default=300, help="Number of training steps for LR find.")
     parser.add_argument("--lr_finder.mode", type=str, default="exponential", choices=["linear", "exponential"],
                         help="LR finder mode.")
-    parser.add_argument("--lr_finder.early_stop_threshold", type=float, default=4.0,
+    parser.add_argument("--lr_finder.early_stop_threshold", type=float, default=8.0,
                         help="Early stop threshold for loss divergence.")
     # parser.add_argument("--lr_finder.plot_save_path", type=str, default="lr_finder_plots/lr_plot.png",
     #                     help="Path to save the LR finder plot.")  # Defined later in the script
@@ -57,15 +63,14 @@ def main():
     if not data_config:
         raise ValueError("Data configuration ('data:') is missing in the config file.")
     datamodule = DataModule(**data_config)
-    # It's good practice to call setup if your dataloaders depend on it
-    # datamodule.prepare_data() # Call if you have downloads or one-time setup
+    # datamodule.prepare_data() # Call if downloads or one-time setup
     datamodule.setup(stage='fit')  # Ensure train_dataloader is available
 
     # --- Instantiate Model ---
     model_config = config.get('model', {})
     if not model_config:
         raise ValueError("Model configuration ('model:') is missing in the config file.")
-    # Link num_classes and image_size from data_config if not directly in model_config
+    # Link num_classes and image_size from data_config if not set in model_config
     if 'num_classes' in data_config and 'n_classes' not in model_config:
         model_config['n_classes'] = data_config['num_classes']
     if 'size' in data_config and 'image_size' not in model_config:
@@ -77,10 +82,11 @@ def main():
     # Ensure trainer_config is a dict, even if empty in YAML
     if trainer_config is None: trainer_config = {}
 
+    # Set default values for trainer_config if not specified
     trainer_instance_for_tuner = pl.Trainer(
         accelerator=trainer_config.get('accelerator', 'auto'),
         devices=trainer_config.get('devices', 'auto'),
-        precision=trainer_config.get('precision', '32-true'),  # Default to 32-true if not specified
+        precision=trainer_config.get('precision', '32-true'),
         max_epochs=trainer_config.get('max_epochs', 3),  # LR find usually needs few epochs/steps
         max_steps=trainer_config.get('max_steps', -1),  # Can also control by steps
         logger=False,  # No extensive logging needed for LR find
@@ -88,7 +94,7 @@ def main():
         enable_checkpointing=False  # No checkpointing needed for LR find
     )
 
-    # define a flexible path for saving the LR finder plot
+    # Define a flexible path for saving the LR finder plot
     PATH =f"lr_finder_plots/{model_config['model_name']}_lr_finder_plot.png"
 
     print("Starting Learning Rate Finder...")
@@ -109,9 +115,10 @@ def main():
         return
 
     try:
+        # Initialize the LR Finder using the explicit Tuner instance
         lr_finder_result = explicit_tuner.lr_find(
             model,
-            datamodule=datamodule,  # Pass the datamodule here
+            datamodule=datamodule,
             min_lr=args.lr_finder.min_lr,
             max_lr=args.lr_finder.max_lr,
             num_training=args.lr_finder.num_training,
@@ -166,7 +173,7 @@ def main():
 
 if __name__ == "__main__":
     # Ensure CUDA settings are managed if using GPU
-    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():  # Check for BF16 support specifically for TF32
+    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
         print("TF32 enabled for CUDA matmul and cuDNN.")

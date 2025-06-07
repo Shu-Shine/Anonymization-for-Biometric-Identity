@@ -40,7 +40,7 @@ class MyLightningCLI(LightningCLI):
         parser.link_arguments("data.class_names", "model.class_names", apply_on="instantiate")
 
     def before_instantiate_classes(self) -> None:
-        # Check if data.num_classes and model.n_classes are set
+        # Check if model.n_classes differ from data.num_classes, override if necessary
         if "data" in self.config and "model" in self.config:
             if hasattr(self.config.data, "num_classes") and hasattr(self.config.model, "n_classes"):
                 if self.config.data.num_classes != self.config.model.n_classes:
@@ -48,11 +48,12 @@ class MyLightningCLI(LightningCLI):
                           f"with data.num_classes ({self.config.data.num_classes}) before instantiation.")
                     self.config.model.n_classes = self.config.data.num_classes
 
-def cli_main():  # This function is the entry point for the CLI
-    # These are good settings for performance with compatible GPUs
+def cli_main():
+    # Set PyTorch to use TF32 for faster training on supported GPUs
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
+    # Entry point for the CLI
     cli = MyLightningCLI(
         ClassificationModel,
         DataModule,
