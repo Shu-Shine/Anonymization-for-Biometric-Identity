@@ -23,12 +23,22 @@ def increment_path(base_dir, name='test'):
 
 
 # --- Configuration ---
-IMAGE_DIR = "output/CLIP_filter/filtered_images4"  # input directory containing images to filter
+IMAGE_DIR = "../output/CLIP_filter/filtered_images4"  # input directory containing images to filter
 # IMAGE_DIR = "test"
 CLIP_Filter = True  # Set to True to save filtered images
-Results_dir = "output/CLIP_filter"
+
+
+# --- change ---
+# Results_dir = "output/CLIP_filter"
+Results_dir = increment_path("output", name="CLIP_filter")
 Name = "filtered_images"
-OUTPUT_DIR = increment_path(Results_dir, name=Name)
+# OUTPUT_DIR = increment_path(Results_dir, name=Name)
+OUTPUT_DIR = Results_dir / Name
+REJECTED_OUTPUT_DIR = Results_dir / "rejected_images"
+rejected_images_final = []  # Store paths of rejected images
+# --- end change ---
+
+
 SUBSET_SIZE = 600000000  # Set to None or a larger number to use all images
 
 # --- CLIP Model Configuration ---
@@ -183,12 +193,23 @@ with torch.no_grad():
             else:
                 print(f"    No exclusion criteria met based on individual thresholds.")
 
+
+            # --- change ---
+            # if is_positive_target and not is_excluded:
+            #     filtered_images_final.append(image_path)
+            #     print("    ==> Final filtering passed (Image meets positive target and no exclusions)")
+            # else:
+            #     reason = "positive target not met" if not is_positive_target else f"excluded by '{excluded_by_prompt}' (threshold {exclusion_threshold_triggered})"
+            #     print(f"    ==> Final filtering failed (Reason: {reason})")
+
             if is_positive_target and not is_excluded:
                 filtered_images_final.append(image_path)
                 print("    ==> Final filtering passed (Image meets positive target and no exclusions)")
             else:
+                rejected_images_final.append(image_path)
                 reason = "positive target not met" if not is_positive_target else f"excluded by '{excluded_by_prompt}' (threshold {exclusion_threshold_triggered})"
                 print(f"    ==> Final filtering failed (Reason: {reason})")
+            # --- end change ---
 
 
         except FileNotFoundError:
@@ -232,3 +253,17 @@ if CLIP_Filter and filtered_images_final:
 elif CLIP_Filter and not filtered_images_final:
     print("\nNo images to copy as filter criteria were not met.")
 
+
+# ---change---
+# Copy rejected images
+if CLIP_Filter and rejected_images_final:
+    os.makedirs(REJECTED_OUTPUT_DIR, exist_ok=True)
+    rejected_copied_count = 0
+    for img_path in rejected_images_final:
+        try:
+            shutil.copy(img_path, os.path.join(REJECTED_OUTPUT_DIR, os.path.basename(img_path)))
+            rejected_copied_count += 1
+        except Exception as e:
+            print(f"Error copying {img_path} to {REJECTED_OUTPUT_DIR}: {e}")
+    print(f"\n{rejected_copied_count} Rejected images copied to '{REJECTED_OUTPUT_DIR}/'")
+# --- end change ---
