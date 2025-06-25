@@ -78,9 +78,11 @@ def batch_crop_wound(input_dir, output_dir, margins=[50]):
 
 
 if __name__ == "__main__":
-    input_folder = "../output/CLIP_filter/filtered_images"
-    output_folder = "../output/Crop/50_try"
+    input_folder = "/home/woody/iwso/iwso183h/image_anonymization/output/CLIP_filter3/filtered_images"
+    output_folder = "output/Crop/100_try"
     # margins = [20, 50, 80]
-    margins = [50]
+    # todo: try larger margin for crop and high resolution images
+    # todo: change tenserflow environment
+    margins = [100]
 
     batch_crop_wound(input_folder, output_folder, margins)
