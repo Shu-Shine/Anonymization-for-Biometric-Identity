@@ -3,7 +3,7 @@ import numpy as np
 import os
 import time
 
-def watershed(INPUT_FOLDER, OUTPUT_FOLDER, BINARY_THRESHOLD_VALUE = 150, SURE_FG_THRESHOLD_RATIO = 0.5):
+def watershed(INPUT_FOLDER, OUTPUT_FOLDER, BINARY_THRESHOLD_VALUE = 150, SURE_FG_THRESHOLD_RATIO = 0.6):
     # --- Configuration ---
     # INPUT_FOLDER = '/home/woody/iwso/iwso183h/image_anonymization/processed_watershed5'
     # OUTPUT_FOLDER = 'processed_watershed6'
@@ -41,7 +41,8 @@ def watershed(INPUT_FOLDER, OUTPUT_FOLDER, BINARY_THRESHOLD_VALUE = 150, SURE_FG
             image_path = os.path.join(INPUT_FOLDER, filename)
 
             base_name, ext = os.path.splitext(filename)
-            output_overlay_path = os.path.join(OUTPUT_FOLDER, f"{base_name}_overlay{ext}")
+            # output_overlay_path = os.path.join(OUTPUT_FOLDER, f"{base_name}_overlay{ext}")
+            output_overlay_path = os.path.join(OUTPUT_FOLDER, filename)
             # output_mask_path = os.path.join(OUTPUT_FOLDER, f"{base_name}_mask{ext}")
             print(f"\n--- Processing: {filename} ---")
 
@@ -88,7 +89,7 @@ def watershed(INPUT_FOLDER, OUTPUT_FOLDER, BINARY_THRESHOLD_VALUE = 150, SURE_FG
 
             # Create the hard overlay image
             overlay_image = image.copy()
-            overlay_color = [0, 0, 0]  # [255, 0, 0] Blue color in BGR format
+            overlay_color = [0, 0, 0]  # [255, 0, 0] Blue
             overlay_image[mask == 255] = overlay_color
 
             cv2.imwrite(output_overlay_path, overlay_image)
@@ -99,3 +100,10 @@ def watershed(INPUT_FOLDER, OUTPUT_FOLDER, BINARY_THRESHOLD_VALUE = 150, SURE_FG
             continue
 
     print("\n--- Watershed Processing Finished ---")
+
+if __name__ == "__main__":
+
+    INPUT_FOLDER = '/home/woody/iwso/iwso183h/output/CLIP_filter2/filtered_images'
+    OUTPUT_FOLDER = 'processed_watershed'
+
+    watershed(INPUT_FOLDER, OUTPUT_FOLDER, SURE_FG_THRESHOLD_RATIO = 0.6)

@@ -8,9 +8,6 @@ import random
 from pathlib import Path
 import datetime
 
-from image_anonymization.watershed_anony import watershed
-from image_anonymization.easyocr_anony import easyocr_processor
-from filter_noise import filter_noise
 
 # helper function to increment path
 def increment_path(base_dir, name='test'):
@@ -24,14 +21,11 @@ def increment_path(base_dir, name='test'):
             n += 1
         return (base / f"{name}{n}").resolve()
 
-def filter_ruler():
+def filter_noise(IMAGE_DIR):
     # --- Configuration ---
-    # IMAGE_DIR = "../output/CLIP_filter/filtered_images4"  # input directory containing images to filter
-    IMAGE_DIR = "test"
+    # IMAGE_DIR = "/home/woody/iwso/iwso183h/output/CLIP_filter2/rejected_images"  # input directory containing images to filter
+    # IMAGE_DIR = "../test"
     CLIP_Filter = True  # Set to True to save filtered images
-
-    second_watershed = True
-    easyocr_anonymisation = True
 
 
     # --- change ---
@@ -41,11 +35,7 @@ def filter_ruler():
     # OUTPUT_DIR = increment_path(Results_dir, name=Name)
     OUTPUT_DIR = Results_dir / Name
     REJECTED_OUTPUT_DIR = Results_dir / "rejected_images"
-    rejected_images_final = []  # Store paths of rejected images
-
-    OUTPUT_FOLDER_watershed = Results_dir / 'processed_watershed'
-    OUTPUT_FOLDER_easyocr = Results_dir / 'processed_easyocr'
-
+    rejected_images_final = []
     # --- end change ---
 
 
@@ -56,26 +46,27 @@ def filter_ruler():
     OPEN_CLIP_PRETRAINED_DATASET = 'laion2b_s34b_b79k'
 
     # --- Prompt Configuration ---
-    POSITIVE_TARGET_PROMPT = "a photo of a skin wound with ruler"  # 0.46, 0.66
-
-    POSITIVE_THRESHOLD = 0.46  # Probability threshold for the positive prompt
+    POSITIVE_TARGET_PROMPT = "a photo of a skin wound"  # 0.46, 0.66
+    POSITIVE_THRESHOLD = 0.20  # Probability threshold for the positive prompt
 
     # Unified Exclusion Prompts with Individual Thresholds
     EXCLUSION_PROMPTS_AND_THRESHOLDS = [
-        {"prompt": "a photo of exposed genitalia, anus, or perineal region", "threshold": 0.57},
-        {"prompt": "a photo of female breasts", "threshold": 0.57},
-        {"prompt": "a photo of a human face or identifiable biometric features", "threshold": 0.57},
-        {"prompt": "a photo of a tattoo or highly distinctive scar", "threshold": 0.57},
+        # {"prompt": "a photo of exposed genitalia, anus, or perineal region", "threshold": 0.57},
+        # {"prompt": "a photo of female breasts", "threshold": 0.57},
+        # {"prompt": "a photo of a human face or identifiable biometric features", "threshold": 0.57},
+        # {"prompt": "a photo of a tattoo or highly distinctive scar", "threshold": 0.57},
         {"prompt": "a photo of an ID tag or personal identification document", "threshold": 0.57},
-        {"prompt": "a photo of skin without wound", "threshold": 0.57},
-        {"prompt": "a photo of skin wound on exposed genitalia, anus, perineal region, Buttocks or Female breasts area",
-         "threshold": 0.57},
-        {"prompt": "a photo of skin wound and tattoo", "threshold": 0.50},
-        {"prompt": "a photo of skin wound on face", "threshold": 0.32},
+        # {"prompt": "a photo of skin without wound", "threshold": 0.57},
+        # {"prompt": "a photo of skin wound on exposed genitalia, anus, perineal region, Buttocks or Female breasts area",
+        #  "threshold": 0.57},
+        # {"prompt": "a photo of skin wound and tattoo", "threshold": 0.50},
+        # {"prompt": "a photo of skin wound on face", "threshold": 0.32},
         {"prompt": "an abstract image or non-medical subject", "threshold": 0.40},
+        # {"prompt": "a document with wound photo", "threshold": 0.40},
+
         # {"prompt": "a photo of a bandaged body part", "threshold": 0.50},
         # {"prompt": "a photo of total blue Wood's lamp examination", "threshold": 0.50},
-        # {"prompt": "a photo of Skin slice specimens", "threshold": 0.50},
+        {"prompt": "a photo of Skin slice specimens", "threshold": 0.50},
     ]
 
     # Extract just the prompt strings for CLIP encoding
@@ -85,11 +76,9 @@ def filter_ruler():
     text_labels = [POSITIVE_TARGET_PROMPT] + all_exclusion_prompt_strings + [
         # Add other relevant general categories if needed for broader classification output
         "a photo of total blue Wood's lamp examination",
-        "a photo of Skin slice specimens",
+        # "a photo of Skin slice specimens",
         "a photo of bandaged body part",
     ]
-
-
     # Ensure all labels are unique (important for `text_labels.index()`)
     if len(text_labels) != len(set(text_labels)):
         print("Warning: Duplicate prompts found in text_labels. This might lead to unexpected behavior.")
@@ -280,20 +269,3 @@ def filter_ruler():
                 print(f"Error copying {img_path} to {REJECTED_OUTPUT_DIR}: {e}")
         print(f"\n{rejected_copied_count} Rejected images copied to '{REJECTED_OUTPUT_DIR}/'")
     # --- end change ---
-
-
-    # text anonymisation
-    watershed(OUTPUT_DIR, OUTPUT_FOLDER_watershed)
-    if second_watershed:
-        OUTPUT_FOLDER_watershed2nd = Results_dir / 'processed_watershed2'
-        watershed(OUTPUT_FOLDER_watershed, OUTPUT_FOLDER_watershed2nd)
-    if easyocr_anonymisation:
-        easyocr_processor(OUTPUT_DIR, OUTPUT_FOLDER_easyocr)
-
-    return REJECTED_OUTPUT_DIR
-
-if __name__ == "__main__":
-    # anonymize ruler with text
-    REJECTED_ruler_path = filter_ruler()
-    # further filter noisy images
-    filter_noise(REJECTED_ruler_path)

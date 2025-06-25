@@ -8,6 +8,8 @@ import random
 from pathlib import Path
 import datetime
 
+from watershed_anony import watershed
+from easyocr_anony import easyocr
 
 # helper function to increment path
 def increment_path(base_dir, name='test'):
@@ -23,8 +25,8 @@ def increment_path(base_dir, name='test'):
 
 
 # --- Configuration ---
-IMAGE_DIR = "../output/CLIP_filter/filtered_images4"  # input directory containing images to filter
-# IMAGE_DIR = "test"
+IMAGE_DIR = "/home/woody/iwso/iwso183h/Deepskin-main/output/Crop/100_try"
+# IMAGE_DIR = "../test"
 CLIP_Filter = True  # Set to True to save filtered images
 
 
@@ -35,7 +37,7 @@ Name = "filtered_images"
 # OUTPUT_DIR = increment_path(Results_dir, name=Name)
 OUTPUT_DIR = Results_dir / Name
 REJECTED_OUTPUT_DIR = Results_dir / "rejected_images"
-rejected_images_final = []  # Store paths of rejected images
+rejected_images_final = []
 # --- end change ---
 
 
@@ -46,22 +48,26 @@ OPEN_CLIP_MODEL_NAME = 'ViT-B-32'
 OPEN_CLIP_PRETRAINED_DATASET = 'laion2b_s34b_b79k'
 
 # --- Prompt Configuration ---
-POSITIVE_TARGET_PROMPT = "a photo of a skin wound"
-POSITIVE_THRESHOLD = 0.25  # Probability threshold for the positive prompt
+POSITIVE_TARGET_PROMPT = "a photo of a skin wound"  # 0.46, 0.66
+POSITIVE_THRESHOLD = 0.01  # Probability threshold for the positive prompt
 
 # Unified Exclusion Prompts with Individual Thresholds
 EXCLUSION_PROMPTS_AND_THRESHOLDS = [
-    {"prompt": "a photo of exposed genitalia, anus, or perineal region", "threshold": 0.57},
+    {"prompt": "a photo of exposed genitalia, anus, or perineal region", "threshold": 0.71}, # include more imgs 0.32
     {"prompt": "a photo of female breasts", "threshold": 0.57},
     {"prompt": "a photo of a human face or identifiable biometric features", "threshold": 0.57},
     {"prompt": "a photo of a tattoo or highly distinctive scar", "threshold": 0.57},
-    {"prompt": "a photo of an ID tag or personal identification document", "threshold": 0.57},
-    {"prompt": "a photo of skin without wound", "threshold": 0.57},
+    # {"prompt": "a photo of an ID tag or personal identification document", "threshold": 0.57},
+    # {"prompt": "a photo of skin without wound", "threshold": 0.57},
     {"prompt": "a photo of skin wound on exposed genitalia, anus, perineal region, Buttocks or Female breasts area",
-     "threshold": 0.57},
+     "threshold": 0.53},
     {"prompt": "a photo of skin wound and tattoo", "threshold": 0.50},
     {"prompt": "a photo of skin wound on face", "threshold": 0.32},
-    {"prompt": "an abstract image or non-medical subject", "threshold": 0.40},
+
+    # {"prompt": "an abstract image or non-medical subject", "threshold": 0.40},
+    {"prompt": "a document with wound photo", "threshold": 0.50},
+    {"prompt": "a page of several wound photos", "threshold": 0.80},
+
     # {"prompt": "a photo of a bandaged body part", "threshold": 0.50},
     # {"prompt": "a photo of total blue Wood's lamp examination", "threshold": 0.50},
     # {"prompt": "a photo of Skin slice specimens", "threshold": 0.50},
@@ -74,7 +80,7 @@ all_exclusion_prompt_strings = [item["prompt"] for item in EXCLUSION_PROMPTS_AND
 text_labels = [POSITIVE_TARGET_PROMPT] + all_exclusion_prompt_strings + [
     # Add other relevant general categories if needed for broader classification output
     "a photo of total blue Wood's lamp examination",
-    "a photo of Skin slice specimens",
+    # "a photo of Skin slice specimens",
     "a photo of bandaged body part",
 ]
 # Ensure all labels are unique (important for `text_labels.index()`)

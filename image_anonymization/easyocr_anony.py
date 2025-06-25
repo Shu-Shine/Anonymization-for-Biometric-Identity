@@ -103,3 +103,11 @@ def easyocr_processor(INPUT_FOLDER, OUTPUT_FOLDER, MAX_DIM = 1000):
             continue
 
     print("\n--- Easyocr Processing Script Finished ---")
+
+
+if __name__ == "__main__":
+
+    INPUT_FOLDER = '/home/woody/iwso/iwso183h/output/CLIP_filter2/filtered_images'
+    OUTPUT_FOLDER = 'processed_images3'
+
+    easyocr_processor(INPUT_FOLDER, OUTPUT_FOLDER)
