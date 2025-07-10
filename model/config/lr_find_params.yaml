@@ -1,0 +1,24 @@
+
+data:
+  data_dir_train_val: "data/AZH_dataset/Train"  # todo: Set the path to training/validation data
+  num_classes: 6
+  size: 224
+  batch_size: 128                      # todo: Set training batch size
+  workers: 4
+  k_fold_num_splits: 1
+  validation_split_ratio: 0.2
+  k_fold_random_seed: 1
+
+model:
+  model_name: "tv-efficientnet-b4"     # todo: Set training model name
+  # lr: 1e-7 # lr will be overridden by the finder's sweep
+  optimizer: "adamw"                   #todo: Set training optimizer
+  weight_decay: 0.0001                 # todo: Set training weight decay
+
+trainer:
+  accelerator: "auto"
+  devices: "1"
+  precision: "16-mixed"
+  max_epochs: 30         # Max epochs for the LR find process itself
+
+# todo: Set lr_find_params via command line

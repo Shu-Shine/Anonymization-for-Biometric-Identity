@@ -1,0 +1,40 @@
+data:
+  data_dir_train_val: "data/AZH_dataset/Train"  # todo: Set training data path
+  num_classes: 6
+  size: 224
+  batch_size: 128  # todo: Set training batch size
+  k_fold_num_splits: 1 # For single train/val split
+  validation_split_ratio: 0.2
+
+model:
+  model_name: "tv-efficientnet-b4" # Or "tv-vgg16-bn", "hf-resnet50", "timm-efficientnet-b0"
+  optimizer: "adamw"
+  lr: 0.0005 # CNNs often start with higher LR than ViTs for fine-tuning
+  weight_decay: 0.005
+  scheduler: "cosine"
+  warmup_steps: 100 # Adjust based on dataset size/epochs
+  training_mode: "full" # Or "linear", or "lora"
+  # For LoRA on CNNs, you'd ideally specify Conv2d layers:
+  # lora_target_modules: ["features.0", "features.3", "classifier.0"] # Example, actual names depend on model structure
+
+trainer:
+  max_epochs: 50
+  accelerator: "auto"
+  devices: "1"
+  precision: "16-mixed"
+  # ... logger, callbacks (EarlyStopping, ModelCheckpoint) ...
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.EarlyStopping
+      init_args:
+        monitor: "val_acc"
+        patience: 10
+        min_delta: 0.001
+        mode: "max"
+        verbose: true
+    # ModelCheckpoint will be added by MyLightningCLI defaults if configured
+
+model_checkpoint: # Overrides or sets defaults for ModelCheckpoint
+  monitor: "val_acc"
+  filename: "best-cnn-{epoch}-{val_acc:.4f}"
+  save_top_k: 1
+  mode: "max"

@@ -22,7 +22,6 @@
 *.cfg
 *.zip
 *.sbatch
-*.out
 *.fid_cache
 *.npy
 *.gz
@@ -83,9 +82,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
-
 # Distribution / packaging
 .Python
 build/
@@ -123,11 +119,14 @@ htmlcov/
 .tox/
 .coverage
 .coverage.*
+coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+html*
+.pytest_cache
 
 # Translations
 *.mo
@@ -170,7 +169,6 @@ celerybeat-schedule
 venv*/
 ENV*/
 .venv
-env/
 
 # Spyder project settings
 .spyderproject
@@ -304,20 +302,15 @@ fabric.properties
 # Directories
 bin/
 build*/
-__pycache__/
 samples/
 checkpoints/
 DSFD-Pytorch-Inference-master/
 Deepskin-main/
 yolov5-master/
-
-
-# coverage
-.coverage
-.coverage.*
-coverage.*
-html*
-.pytest_cache
+draft/
+output/
+logs/
+data/
 
 # .hypothesis
 .hypothesis

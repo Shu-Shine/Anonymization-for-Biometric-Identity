@@ -1,0 +1,35 @@
+#python main.py test \
+#    --config config/test_config.yaml \
+#    --ckpt_path "path/to/checkpoints/best-cnn-epoch=8-val_multiclassaccuracy=0.4786.ckpt"
+
+# --- DataModule Arguments ---
+data:
+  data_dir_train_val: "data/AZH_dataset/Train"
+  data_dir_test: "data/AZH_dataset/Test"  # todo: Path to test dataset
+  num_classes: 6                          # todo: Set correct number of classes
+  size: 224
+  batch_size: 64
+  workers: 4
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  # k_fold params are not relevant for test-only mode
+  k_fold_num_splits: 0 # Or 1, to indicate not in k-fold CV mode for splitting
+  validation_split_ratio: null # Not used for testing
+
+# --- ClassificationModel Arguments ---
+model:
+  model_name: "dinov2-base-skindisease"   # todo: Architecture of checkpoint
+#  n_classes: 4
+  # Other model parameters (lr, optimizer, etc.) are IGNORED when loading from a checkpoint for testing.
+
+# --- Trainer Arguments ---
+trainer:
+  accelerator: "auto" # Or "cpu", "auto"
+  devices: "1"
+  precision: "16-mixed" # Should match training if possible, or "32-true" for testing
+  logger:
+    save_dir: "test_results"
+    name: "test_model"                    # todo: Set the folder name for this test run
+    # version: "experiment_X" # Optionally set a version
+
+# todo: Set ckpt_path via the command line

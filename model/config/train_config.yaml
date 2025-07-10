@@ -1,0 +1,82 @@
+# config/train_config.yaml
+
+# --- DataModule Arguments (Static for this CV run) ---
+data:
+  data_dir_train_val: "data/AZH_dataset/Train" # todo: Set training data path
+  # For predownloaded models
+#  processor_path: "model/hf_models/Jayanth2002_dinov2_finetuned_skin"
+  num_classes: 6                      # todo: Set correct number of classes
+  size: 224
+  batch_size: 128                     # todo: Set training batch size
+  workers: 4
+  # Select K-fold CV or training/validation split
+  k_fold_num_splits: 1    # Set to 1 for no K-fold
+  validation_split_ratio: 0.2
+  k_fold_random_seed: 1               # todo: Set random seed for split consistency
+  resize_first: false
+  crop_scale_wound: [0.6, 1.0]
+  color_jitter_brightness: 0.2
+  color_jitter_contrast: 0.2
+  color_jitter_saturation: 0.2
+  color_jitter_hue: 0.1
+  flip_prob: 0.5
+  erase_prob: 0.0
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+# --- ClassificationModel Arguments (Static for this CV run) ---
+model:
+  model_name: "vit-b16-224-dino-v2"  # todo: Set model name
+  # For predownloaded models
+#  model_path: "model/hf_models/Jayanth2002_dinov2_finetuned_skin"
+  training_mode: "full"              # todo: Options: "full", "lora", "linear"
+  optimizer: "adamw"                 # todo: Set optimizer type, e.g. "adamw", "sgd"
+  lr: 1e-04                          # todo: Set lr, e.g. 1e-04, 5e-05, 1e-05
+  weight_decay: 0.01                 # todo: Set weight decay, e.g. 0.01, 0.001
+  scheduler: "cosine"                # todo: Set scheduler type, e.g. "cosine", "linear", "step"
+  warmup_steps: 50                   # todo: 500, 总 steps 的 5-10%?
+  # lora_r: 16 # Only if training_mode is lora
+  # lora_alpha: 16
+
+# --- Trainer Arguments (Some static, some will be overridden) ---
+trainer:
+  max_epochs: 100
+  accelerator: "gpu"
+  devices: "1"
+  precision: "16-mixed"
+  #  max_steps: 5000
+#  val_check_interval: 500
+  # --- Define a LIST of loggers ---
+#  logger:
+#    - class_path: pytorch_lightning.loggers.CSVLogger
+#      init_args:
+#        save_dir: "output" # Base directory for all logs
+#        name: "csv_logs"   # Subdirectory for CSV logs for this run
+#        # version: "run_01" # Optional specific version for CSV
+#
+#    - class_path: pytorch_lightning.loggers.TensorBoardLogger
+#      init_args:
+#        save_dir: "output" # Base directory for all logs
+#        name: "tensorboard_logs" # Subdirectory for TensorBoard logs for this run
+#        # version: "run_01" # Optional specific version for TensorBoard (can be same or different)
+#        # default_hp_metric: False # Set to True if you want hyperparameter tuning plots in TensorBoard
+  logger:
+#    save_dir: "output"
+    name: "run_logs"
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.EarlyStopping
+      init_args:
+        monitor: "val_acc"            # todo: Set EarlyStopping monitor metric, e.g. "val_macro_f1"
+        patience: 10   # Commonly 5-20
+        min_delta: 0.001  # or 0.0001
+        mode: "max"
+        verbose: true
+    # Add other callbacks as needed
+
+# --- ModelCheckpoint (Defaults set in MyLightningCLI can be overridden here) ---
+model_checkpoint:
+  filename: "best-step-{step}-{val_acc:.4f}" # todo: Keep same monitor metric name as above
+  monitor: "val_acc"                         # todo: Keep same monitor metric name as above
+  save_last: true
+  mode: "max" # "min" for loss, "max" for accuracy
+  save_top_k: 1
